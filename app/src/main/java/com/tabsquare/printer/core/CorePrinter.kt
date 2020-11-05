@@ -44,6 +44,8 @@ abstract class CorePrinter(private val context: Context) : ReceiptConstructListe
         const val STATUS_PRINTING = 22
         const val STATUS_SUCCESS_PRINT = 23
         const val STATUS_FAIL_PRINT = 24
+        const val STATUS_NOT_FOUND = 25
+
 
         const val ERROR_CONNECT = 400
         const val ERROR_PARAM = 401
