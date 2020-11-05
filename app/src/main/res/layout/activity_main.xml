@@ -14,12 +14,13 @@
         android:textSize="24sp"
         android:textAllCaps="true"
         android:textStyle="bold"
-        android:text="Custom Printer Test"
+        android:text="Senor Printer Test"
         android:layout_marginBottom="32dp" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:visibility="gone"
         android:text="Number of Copy" />
 
     <EditText
@@ -27,18 +28,21 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:inputType="numberDecimal"
+        android:visibility="gone"
         android:text="20"
         android:layout_marginBottom="16dp" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:visibility="gone"
         android:text="Interval between each receipt copy (in Second)" />
 
     <EditText
         android:id="@+id/etIntervalSecond"
         android:layout_width="match_parent"
         android:inputType="numberDecimal"
+        android:visibility="gone"
         android:text="10"
         android:layout_height="wrap_content" />
 
@@ -47,6 +51,14 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="PRINT"/>
+        android:text="PRINT" />
+
+
+    <EditText
+        android:id="@+id/etLog"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:lines="5"/>
 
 </LinearLayout>

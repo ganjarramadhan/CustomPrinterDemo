@@ -225,10 +225,11 @@ class MainActivity : AppCompatActivity() {
         GlobalScope.launch(Dispatchers.Main) {
             val etPrinterCount = findViewById<EditText>(R.id.etNumberOfCopy)
             val etInterval = findViewById<EditText>(R.id.etIntervalSecond)
+            val etLog = findViewById<EditText>(R.id.etLog)
             val btnPrint = findViewById<Button>(R.id.btnPrint)
 
-            val printerCount = etPrinterCount.text.toString().toInt()
-            val printerInterval = etInterval.text.toString().toLong() * 1000
+            val printerCount = 1//etPrinterCount.text.toString().toInt()
+            val printerInterval = 10000L //etInterval.text.toString().toLong() * 1000
             var counter = 1
 
             btnPrint.isEnabled = false
@@ -244,13 +245,17 @@ class MainActivity : AppCompatActivity() {
                         when (val printingStatus = withContext(Dispatchers.IO) { printer.printReceipt() }) {
                             is PrinterStatus.Success -> {
                                 printer.closeConnection()
-                                Timber.e("Printer: Attempt #$counter - Success Printing")
+                                val messageLog = "Printer: Attempt #$counter - Success Printing"
+                                Timber.e(messageLog)
+                                etLog.setText(messageLog)
                                 counter++
                                 delay(printerInterval)
                             }
                             is PrinterStatus.Error -> {
                                 printer.closeConnection()
-                                Timber.e("Printer: Attempt #$counter -  Fail Printing ${printingStatus.code} - ${printingStatus.message}")
+                                val messageLog = "Printer: Attempt #$counter -  Fail Printing ${printingStatus.code} - ${printingStatus.message}"
+                                Timber.e(messageLog)
+                                etLog.setText(messageLog)
                                 counter++
                                 delay(printerInterval)
                             }
@@ -258,7 +263,9 @@ class MainActivity : AppCompatActivity() {
                     }
                     is PrinterStatus.Error -> {
                         printer.closeConnection()
-                        Timber.d("Printer: Attempt #$counter -  Fail Connecting ${connectionStatus.code} - ${connectionStatus.message}")
+                        val messageLog = "Printer: Attempt #$counter -  Fail Connecting ${connectionStatus.code} - ${connectionStatus.message}"
+                        Timber.e(messageLog)
+                        etLog.setText(messageLog)
                         counter++
                         delay(printerInterval)
                     }
