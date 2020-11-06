@@ -1,5 +1,6 @@
 package com.tabsquare.printer.demo
 
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
@@ -50,7 +51,7 @@ class MainActivity : AppCompatActivity() {
             address = "Kallang Ave",
             phone = "123456789",
             moreInfo = "More Info",
-            topImage = null, //BitmapFactory.decodeResource(resources, R.drawable.img_tabsquare_logo),
+            topImage = BitmapFactory.decodeResource(resources, R.drawable.img_tabsquare_logo),
             bottomImage = null
         )
 

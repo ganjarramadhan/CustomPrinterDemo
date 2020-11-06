@@ -142,10 +142,10 @@ class SenorPrinter(
         textSetting.doubleWidth = SettingEnum.Disable
 
         escCmd.append(escCmd.getTextCmd(textSetting, text))
-        escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.headerCmd)
-        escCmd.append(escCmd.lfcrCmd)
-        rtPrinter.writeMsgAsync(escCmd.appendCmds)
+        escCmd.append(escCmd.lfCmd)
+        //escCmd.append(escCmd.headerCmd)
+        //escCmd.append(escCmd.lfcrCmd)
+        rtPrinter.writeMsg(escCmd.appendCmds)
     }
 
     override fun appendNormalBoldText(text: String, alignment: Int) {
@@ -163,10 +163,10 @@ class SenorPrinter(
         textSetting.doubleWidth = SettingEnum.Disable
 
         escCmd.append(escCmd.getTextCmd(textSetting, text))
-        escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.headerCmd)
-        escCmd.append(escCmd.lfcrCmd)
-        rtPrinter.writeMsgAsync(escCmd.appendCmds)
+        escCmd.append(escCmd.lfCmd)
+        //escCmd.append(escCmd.headerCmd)
+        //escCmd.append(escCmd.lfcrCmd)
+        rtPrinter.writeMsg(escCmd.appendCmds)
     }
 
     override fun appendBigLightText(text: String, alignment: Int) {
@@ -184,10 +184,10 @@ class SenorPrinter(
         textSetting.doubleWidth = SettingEnum.Enable
 
         escCmd.append(escCmd.getTextCmd(textSetting, text))
-        escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.headerCmd)
-        escCmd.append(escCmd.lfcrCmd)
-        rtPrinter.writeMsgAsync(escCmd.appendCmds)
+        escCmd.append(escCmd.lfCmd)
+        //escCmd.append(escCmd.headerCmd)
+        //escCmd.append(escCmd.lfcrCmd)
+        rtPrinter.writeMsg(escCmd.appendCmds)
     }
 
     override fun appendBigBoldText(text: String, alignment: Int) {
@@ -205,10 +205,10 @@ class SenorPrinter(
         textSetting.doubleWidth = SettingEnum.Enable
 
         escCmd.append(escCmd.getTextCmd(textSetting, text))
-        escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.headerCmd)
-        escCmd.append(escCmd.lfcrCmd)
-        rtPrinter.writeMsgAsync(escCmd.appendCmds)
+        escCmd.append(escCmd.lfCmd)
+        //escCmd.append(escCmd.headerCmd)
+        //escCmd.append(escCmd.lfcrCmd)
+        rtPrinter.writeMsg(escCmd.appendCmds)
     }
 
     override fun appendImage(bitmap: Bitmap) {
@@ -228,14 +228,14 @@ class SenorPrinter(
         }
         bitmapSetting.bimtapLimitWidth = bmpPrintWidth * 8
         try {
-            escCmd.append(escCmd.getBitmapCmd(bitmapSetting, bitmap))
+            escCmd.append(escCmd.getBitmapCmd(bitmapSetting, Bitmap.createBitmap(bitmap)))
         } catch (e: SdkException) {
             e.printStackTrace()
         }
-        escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.headerCmd)
-        escCmd.append(escCmd.lfcrCmd)
-        rtPrinter.writeMsgAsync(escCmd.appendCmds)
+        escCmd.append(escCmd.lfCmd)
+        //escCmd.append(escCmd.headerCmd)
+        //escCmd.append(escCmd.lfcrCmd)
+        rtPrinter.writeMsg(escCmd.appendCmds)
     }
 
     override fun appendQR(qrString: String) {
@@ -254,11 +254,11 @@ class SenorPrinter(
         } catch (e: SdkException) {
             e.printStackTrace()
         }
-        escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.headerCmd)
-        escCmd.append(escCmd.lfcrCmd)
+        escCmd.append(escCmd.lfCmd)
+        //escCmd.append(escCmd.headerCmd)
+        //escCmd.append(escCmd.lfcrCmd)
 
-        rtPrinter.writeMsgAsync(escCmd.appendCmds)
+        rtPrinter.writeMsg(escCmd.appendCmds)
     }
 
     override fun appendLine(line: Int) {
@@ -276,12 +276,10 @@ class SenorPrinter(
             textSetting.doubleHeight = SettingEnum.Disable
             textSetting.doubleWidth = SettingEnum.Disable
 
-            escCmd.append(escCmd.getTextCmd(textSetting, "<br>"))
-            escCmd.append(escCmd.lfcrCmd)
-            escCmd.append(escCmd.headerCmd)
-            escCmd.append(escCmd.lfcrCmd)
+            escCmd.append(escCmd.getTextCmd(textSetting, " "))
+            escCmd.append(escCmd.lfCmd)
         }
-        rtPrinter.writeMsgAsync(escCmd.appendCmds)
+        rtPrinter.writeMsg(escCmd.appendCmds)
     }
 
     override fun cutPaper() {
@@ -291,7 +289,7 @@ class SenorPrinter(
         escCmd.append(escCmd.lfcrCmd)
         escCmd.append(escCmd.headerCmd)
         escCmd.append(escCmd.lfcrCmd)
-        rtPrinter.writeMsgAsync(escCmd.appendCmds)
+        rtPrinter.writeMsg(escCmd.appendCmds)
     }
 
     private fun getPermissionIntent(): PendingIntent {
