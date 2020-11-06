@@ -41,30 +41,35 @@ class SenorPrinter(
     private val charsetName = "UTF-8"
 
     override suspend fun openConnection(): PrinterStatus<Int> {
-        val usbManager = getSystemService(context, UsbManager::class.java)
-        val deviceList = usbManager?.deviceList
-        val senorDevices = deviceList?.values?.filter {
-            senorVendorId.contains(it.vendorId.toString())
-        }
-        if (senorDevices.isNullOrEmpty()) {
-            return PrinterStatus.Error(STATUS_NOT_FOUND, "Printer Not Found")
-        } else {
-            val usbDevice = senorDevices[0]
-            val usbConfigBean = UsbConfigBean(context, usbDevice, getPermissionIntent())
-            printerInterface.configObject = usbConfigBean
-            rtPrinter.setPrinterInterface(printerInterface)
-            if (usbManager.hasPermission(usbConfigBean.usbDevice)) {
-                try {
+        try {
+            val usbManager = getSystemService(context, UsbManager::class.java)
+            val deviceList = usbManager?.deviceList
+            val senorDevices = deviceList?.values?.filter {
+                senorVendorId.contains(it.vendorId.toString())
+            }
+
+            if (senorDevices.isNullOrEmpty()) {
+                return PrinterStatus.Error(STATUS_NOT_FOUND, "Printer Not Found")
+            } else {
+                val usbDevice = senorDevices[0]
+                val usbConfigBean = UsbConfigBean(context, usbDevice, getPermissionIntent())
+                printerInterface.configObject = usbConfigBean
+                rtPrinter.setPrinterInterface(printerInterface)
+                return if (usbManager.hasPermission(usbConfigBean.usbDevice)) {
                     rtPrinter.connect(usbConfigBean)
                     isConnected = true
-                    return PrinterStatus.Success(STATUS_CONNECTED)
-                } catch (e: Exception) {
-                    Timber.e(e, "Error when try to connect to printer")
-                    return PrinterStatus.Error(STATUS_DISCONNECTED, e.localizedMessage)
+                    PrinterStatus.Success(STATUS_CONNECTED)
+                } else {
+                    usbManager.requestPermission(
+                        usbConfigBean.usbDevice,
+                        usbConfigBean.pendingIntent
+                    )
+                    PrinterStatus.Error(STATUS_DISCONNECTED, "Need permission")
                 }
-            } else {
-                return PrinterStatus.Error(STATUS_DISCONNECTED, "Need permission")
             }
+        } catch (e: Exception) {
+            Timber.e(e, "Error when try to connect to printer")
+            return PrinterStatus.Error(STATUS_DISCONNECTED, e.localizedMessage)
         }
     }
 
@@ -138,10 +143,6 @@ class SenorPrinter(
 
         escCmd.append(escCmd.getTextCmd(textSetting, text))
         escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.lfcrCmd)
         escCmd.append(escCmd.headerCmd)
         escCmd.append(escCmd.lfcrCmd)
         rtPrinter.writeMsgAsync(escCmd.appendCmds)
@@ -162,10 +163,6 @@ class SenorPrinter(
         textSetting.doubleWidth = SettingEnum.Disable
 
         escCmd.append(escCmd.getTextCmd(textSetting, text))
-        escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.lfcrCmd)
         escCmd.append(escCmd.lfcrCmd)
         escCmd.append(escCmd.headerCmd)
         escCmd.append(escCmd.lfcrCmd)
@@ -188,10 +185,6 @@ class SenorPrinter(
 
         escCmd.append(escCmd.getTextCmd(textSetting, text))
         escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.lfcrCmd)
         escCmd.append(escCmd.headerCmd)
         escCmd.append(escCmd.lfcrCmd)
         rtPrinter.writeMsgAsync(escCmd.appendCmds)
@@ -213,22 +206,18 @@ class SenorPrinter(
 
         escCmd.append(escCmd.getTextCmd(textSetting, text))
         escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.lfcrCmd)
         escCmd.append(escCmd.headerCmd)
         escCmd.append(escCmd.lfcrCmd)
         rtPrinter.writeMsgAsync(escCmd.appendCmds)
     }
 
     override fun appendImage(bitmap: Bitmap) {
-        val cmd = EscCmd()
-        cmd.append(cmd.headerCmd)
+        val escCmd = EscCmd()
+        escCmd.append(escCmd.headerCmd)
 
         val commonSetting = CommonSetting()
         commonSetting.align = CommonEnum.ALIGN_MIDDLE
-        cmd.append(cmd.getCommonSettingCmd(commonSetting))
+        escCmd.append(escCmd.getCommonSettingCmd(commonSetting))
 
         val bitmapSetting = BitmapSetting()
         bitmapSetting.bmpPrintMode = BmpPrintMode.MODE_MULTI_COLOR
@@ -239,17 +228,14 @@ class SenorPrinter(
         }
         bitmapSetting.bimtapLimitWidth = bmpPrintWidth * 8
         try {
-            cmd.append(cmd.getBitmapCmd(bitmapSetting, bitmap))
+            escCmd.append(escCmd.getBitmapCmd(bitmapSetting, bitmap))
         } catch (e: SdkException) {
             e.printStackTrace()
         }
-        cmd.append(cmd.lfcrCmd)
-        cmd.append(cmd.lfcrCmd)
-        cmd.append(cmd.lfcrCmd)
-        cmd.append(cmd.lfcrCmd)
-        cmd.append(cmd.lfcrCmd)
-        cmd.append(cmd.lfcrCmd)
-        rtPrinter.writeMsg(cmd.appendCmds)
+        escCmd.append(escCmd.lfcrCmd)
+        escCmd.append(escCmd.headerCmd)
+        escCmd.append(escCmd.lfcrCmd)
+        rtPrinter.writeMsgAsync(escCmd.appendCmds)
     }
 
     override fun appendQR(qrString: String) {
@@ -269,10 +255,7 @@ class SenorPrinter(
             e.printStackTrace()
         }
         escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.lfcrCmd)
+        escCmd.append(escCmd.headerCmd)
         escCmd.append(escCmd.lfcrCmd)
 
         rtPrinter.writeMsgAsync(escCmd.appendCmds)
@@ -283,26 +266,31 @@ class SenorPrinter(
         escCmd.append(escCmd.headerCmd)
         escCmd.chartsetName = charsetName
 
-        // text setting
-        val textSetting = TextSetting()
+        for (i in 0 until line){
+            // text setting
+            val textSetting = TextSetting()
+            textSetting.align = getAlignment(CommonEnum.ALIGN_LEFT)
+            textSetting.bold = SettingEnum.Disable
+            textSetting.underline = SettingEnum.Disable
+            textSetting.isAntiWhite = SettingEnum.Disable
+            textSetting.doubleHeight = SettingEnum.Disable
+            textSetting.doubleWidth = SettingEnum.Disable
 
-        // get break line
-        val breakLineString = getBreakLine(line)
-
-        escCmd.append(escCmd.getTextCmd(textSetting, breakLineString))
-        escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.lfcrCmd)
-        escCmd.append(escCmd.headerCmd)
-        escCmd.append(escCmd.lfcrCmd)
+            escCmd.append(escCmd.getTextCmd(textSetting, "<br>"))
+            escCmd.append(escCmd.lfcrCmd)
+            escCmd.append(escCmd.headerCmd)
+            escCmd.append(escCmd.lfcrCmd)
+        }
         rtPrinter.writeMsgAsync(escCmd.appendCmds)
     }
 
     override fun cutPaper() {
         val escCmd = EscCmd()
+        escCmd.append(escCmd.headerCmd)
         escCmd.append(escCmd.halfCutCmd)
+        escCmd.append(escCmd.lfcrCmd)
+        escCmd.append(escCmd.headerCmd)
+        escCmd.append(escCmd.lfcrCmd)
         rtPrinter.writeMsgAsync(escCmd.appendCmds)
     }
 
