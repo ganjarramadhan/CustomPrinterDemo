@@ -23,8 +23,8 @@ import it.custom.printer.api.android.CustomException.ERR_WRONGPICTURE
 import it.custom.printer.api.android.CustomException.ERR_WRONGPRINTERFONT
 import it.custom.printer.api.android.CustomPrinter
 import it.custom.printer.api.android.PrinterFont
-import java.io.File
 import timber.log.Timber
+import java.io.File
 
 class TabsquareCustomPrinter(
     private val context: Context,
@@ -83,18 +83,15 @@ class TabsquareCustomPrinter(
     }
 
     override fun closeConnection() {
-        Thread(Runnable {
-            try {
-//                mPrinter?.clearReadBuffer()
-//                mPrinter?.scannerCleanBuffers()
-                mPrinter?.close()
-            } catch (e: CustomException) {
-                // Show Error
-                Timber.e(e, "Custom printer error when close connection")
-            } catch (e: Exception) {
-                Timber.e(e, "Custom printer UNKNOWN error when close connection")
-            }
-        })
+        try {
+            mPrinter?.clearReadBuffer()
+            mPrinter?.close()
+        } catch (e: CustomException) {
+            // Show Error
+            Timber.e(e, "Custom printer error when close connection")
+        } catch (e: Exception) {
+            Timber.e(e, "Custom printer UNKNOWN error when close connection")
+        }
     }
 
     override suspend fun printReceipt(): PrinterStatus<Int> {
@@ -180,22 +177,30 @@ class TabsquareCustomPrinter(
     }
 
     override fun appendImage(bitmap: Bitmap) {
-        val scaleBitmap = resize(bitmap, 480, 480)
-        mPrinter?.printImage(
-            scaleBitmap,
-            CustomPrinter.IMAGE_ALIGN_TO_CENTER,
-            CustomPrinter.IMAGE_SCALE_TO_WIDTH,
-            scaleBitmap.width
-        )
+        try {
+            // val scaleBitmap = resize(bitmap, 480, 480)
+            // mPrinter?.printImage(
+            //     scaleBitmap,
+            //     CustomPrinter.IMAGE_ALIGN_TO_CENTER,
+            //     CustomPrinter.IMAGE_SCALE_TO_WIDTH,
+            //     scaleBitmap.width
+            // )
+        } catch (e: Exception) {
+            Timber.e("Error print bitmap")
+        }
     }
 
     override fun appendQR(qrString: String) {
-        mPrinter?.printBarcode2D(
-            qrString,
-            CustomPrinter.BARCODE_TYPE_QRCODE,
-            CustomPrinter.BARCODE_ALIGN_TO_CENTER,
-            200
-        )
+        try {
+            // mPrinter?.printBarcode2D(
+            //     qrString,
+            //     CustomPrinter.BARCODE_TYPE_QRCODE,
+            //     CustomPrinter.BARCODE_ALIGN_TO_CENTER,
+            //     200
+            // )
+        } catch (e: Exception) {
+            Timber.e("Error print bitmap")
+        }
     }
 
     override fun appendLine(line: Int) {
