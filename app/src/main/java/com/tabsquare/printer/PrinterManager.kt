@@ -13,7 +13,7 @@ object PrinterManager {
         activity: AppCompatActivity,
         printerRequest: PrinterRequest
     ): CorePrinter {
-        val receiptTemplate = DefaultReceiptTemplate(printerRequest, maxChar = 45)
+        val receiptTemplate = DefaultReceiptTemplate(printerRequest, maxChar = 47)
         // return TabsquareCustomPrinter(context = activity, receiptTemplate = receiptTemplate)
         return SenorPrinter(context = activity, receiptTemplate = receiptTemplate)
     }
