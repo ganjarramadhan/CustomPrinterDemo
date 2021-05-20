@@ -1,8 +1,11 @@
 package com.tabsquare.printer.demo
 
+import android.graphics.BitmapFactory
 import android.os.Bundle
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.Spinner
 import androidx.appcompat.app.AppCompatActivity
 import com.tabsquare.printer.PrinterManager
 import com.tabsquare.printer.core.request.DisplayConfig
@@ -11,6 +14,7 @@ import com.tabsquare.printer.core.request.OrderHeader
 import com.tabsquare.printer.core.request.OrderItem
 import com.tabsquare.printer.core.request.PaymentDetail
 import com.tabsquare.printer.core.request.PrinterRequest
+import com.tabsquare.printer.core.request.PrinterTarget
 import com.tabsquare.printer.core.request.QRDetail
 import com.tabsquare.printer.core.request.Restaurant
 import com.tabsquare.printer.core.request.Tax
@@ -26,6 +30,9 @@ import java.util.Date
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var spinPrinter: Spinner
+    private lateinit var etPrinterTarget: EditText
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -36,9 +43,17 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
+        etPrinterTarget = findViewById(R.id.etPrinterTarget)
+
+        spinPrinter = findViewById(R.id.spinPrinter)
+        val adapter = ArrayAdapter<String>(this, R.layout.item_spin_printer)
+        adapter.addAll(PrinterManager.getPrinterList())
+        spinPrinter.adapter = adapter
+
         val btnPrint = findViewById<Button>(R.id.btnPrint)
         btnPrint.setOnClickListener {
-            printReceipt()
+            val selectedPrinter = spinPrinter.selectedItemPosition
+            if (selectedPrinter > 0) printReceipt()
         }
     }
 
@@ -57,7 +72,7 @@ class MainActivity : AppCompatActivity() {
         val paymentDetail = PaymentDetail(
             acquirerBank = "UOB",
             paymentType = "VISA",
-            isPrintPaymentDetail = true,
+            isPrintPaymentDetail = false,
             stan = "STAN",
             merchantId = "123",
             terminalId = "T-123",
@@ -99,9 +114,9 @@ class MainActivity : AppCompatActivity() {
         )
 
         val orderItems = arrayListOf<OrderItem>()
-        arrayListOf("Item 1", "Item 2", "Item 3").forEach { it ->
+        arrayListOf("Item 1", "Item 2").forEach { it ->
             val modifiers = arrayListOf<OrderItem>()
-            arrayListOf("Option 1", "Option 2", "Option 3").forEach { option ->
+            arrayListOf("Option 1", "Option 2").forEach { option ->
                 val nestedModifiers = arrayListOf<OrderItem>()
                 // arrayListOf("Nested Option 1", "Nested Option 2", "Nested Option 3").forEach { nestedOption ->
                 //     val nestedModifier = OrderItem(
@@ -213,7 +228,10 @@ class MainActivity : AppCompatActivity() {
             displayConfig = displayConfig,
             snCode = null,
             minCode = null,
-            printerTarget = null,
+            printerTarget = PrinterTarget(
+                spinPrinter.selectedItemPosition,
+                etPrinterTarget.text.toString()
+            ),
             takeAwayInfo = null
         )
 
@@ -236,12 +254,14 @@ class MainActivity : AppCompatActivity() {
             while (counter <= printerCount) {
                 printerRequest.orderHeader?.queueNo = "Queue #$counter"
                 val printer =
-                    PrinterManager.createReceiptPrinter(this@MainActivity, printerRequest)
+                    PrinterManager.createReceiptPrinter(this@MainActivity, printerRequest, 1)
 
-                when (val connectionStatus = withContext(Dispatchers.IO) { printer.openConnection() }) {
+                when (val connectionStatus =
+                    withContext(Dispatchers.IO) { printer.openConnection() }) {
                     is PrinterStatus.Success -> {
                         // if connection success, then print
-                        when (val printingStatus = withContext(Dispatchers.IO) { printer.printReceipt() }) {
+                        when (val printingStatus =
+                            withContext(Dispatchers.IO) { printer.printReceipt() }) {
                             is PrinterStatus.Success -> {
                                 printer.closeConnection()
                                 Timber.e("Printer: Attempt #$counter - Success Printing")

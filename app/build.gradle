@@ -4,15 +4,15 @@ plugins {
 }
 
 android {
-    compileSdkVersion 29
+    compileSdkVersion 30
 
     defaultConfig {
         applicationId "com.tabsqure.printer.demo"
-        minSdkVersion 16
-        targetSdkVersion 29
+        minSdkVersion 19
+        targetSdkVersion 30
         versionCode 1
         versionName "1.0"
-
+        multiDexEnabled true
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -34,11 +34,23 @@ android {
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
 
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    implementation "androidx.multidex:multidex:2.0.1"
     implementation 'androidx.core:core-ktx:1.3.2'
     implementation 'androidx.appcompat:appcompat:1.2.0'
-    implementation 'com.google.android.material:material:1.2.1'
+    implementation 'com.google.android.material:material:1.3.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
+
+    // tabsquare libs
+//    implementation project(":printer")
+    implementation "com.tabsquare.android:printer:1.6.5"
+
+    implementation "com.tabsquare.android:common:1.0.0"
+    implementation "com.tabsquare.android:logger:1.0.1"
+
+    //DataDog
+    implementation "com.datadoghq:dd-sdk-android:1.5.2"
+    implementation "com.datadoghq:dd-sdk-android-timber:1.5.2"
+
 
     // timber for logging
     def timber_version = '4.7.1'
@@ -49,7 +61,7 @@ dependencies {
     implementation "com.github.barteksc:android-pdf-viewer:$pdf_viewer_version"
 
     // coroutines
-    def coroutine_version = "1.3.9"
+    def coroutine_version = "1.4.1"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutine_version"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutine_version"
 
