@@ -1,12 +1,17 @@
 package com.tabsquare.printer.demo
 
-import android.graphics.BitmapFactory
+import android.Manifest
 import android.os.Bundle
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Spinner
 import androidx.appcompat.app.AppCompatActivity
+import com.karumi.dexter.Dexter
+import com.karumi.dexter.MultiplePermissionsReport
+import com.karumi.dexter.PermissionToken
+import com.karumi.dexter.listener.PermissionRequest
+import com.karumi.dexter.listener.multi.MultiplePermissionsListener
 import com.tabsquare.printer.PrinterManager
 import com.tabsquare.printer.core.request.DisplayConfig
 import com.tabsquare.printer.core.request.OrderFooter
@@ -20,13 +25,13 @@ import com.tabsquare.printer.core.request.Restaurant
 import com.tabsquare.printer.core.request.Tax
 import com.tabsquare.printer.util.PrinterStatus
 import com.tabsquare.printer.util.formatDateAndTime
+import java.util.Date
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import java.util.Date
 
 class MainActivity : AppCompatActivity() {
 
@@ -54,7 +59,28 @@ class MainActivity : AppCompatActivity() {
         btnPrint.setOnClickListener {
             val selectedPrinter = spinPrinter.selectedItemPosition
             if (selectedPrinter > 0) printReceipt()
+            // val intent = Intent(this, EpsonPrinterFinder::class.java)
+            // startActivity(intent)
         }
+
+        Dexter.withContext(this)
+            .withPermissions(
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.READ_PHONE_STATE,
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.BLUETOOTH,
+                Manifest.permission.BLUETOOTH_ADMIN
+            ).withListener(object : MultiplePermissionsListener {
+                override fun onPermissionsChecked(report: MultiplePermissionsReport) { /* ... */
+                }
+
+                override fun onPermissionRationaleShouldBeShown(
+                    permissions: List<PermissionRequest?>?,
+                    token: PermissionToken?,
+                ) { /* ... */
+                }
+            }).check()
     }
 
     private fun printReceipt() {
@@ -65,7 +91,8 @@ class MainActivity : AppCompatActivity() {
             address = "Kallang Ave",
             phone = "123456789",
             moreInfo = "More Info",
-            topImage = null, //BitmapFactory.decodeResource(resources, R.drawable.img_tabsquare_logo),
+            topImage = null,
+            // topImage = BitmapFactory.decodeResource(resources, R.drawable.img_tabsquare_logo),
             bottomImage = null
         )
 
@@ -265,6 +292,25 @@ class MainActivity : AppCompatActivity() {
                             is PrinterStatus.Success -> {
                                 printer.closeConnection()
                                 Timber.e("Printer: Attempt #$counter - Success Printing")
+                                delay(printerInterval)
+                                val printerKitchen = PrinterManager.createKitchenPrinter(this@MainActivity, printerRequest)
+                                when(val kitchenConnection = withContext(Dispatchers.IO) { printerKitchen.openConnection() }) {
+                                    is PrinterStatus.Success -> {
+                                        when(val kitchenReceipt = withContext(Dispatchers.IO) { printerKitchen.printReceipt() }) {
+                                            is PrinterStatus.Success -> {
+                                                Timber.d("Printer Kitchen Connect: Attempt #$counter - Success print kitchen")
+                                                printerKitchen.closeConnection()
+                                            }
+                                            is PrinterStatus.Error -> {
+                                                Timber.e(kitchenReceipt.exception, "Printer Kitchen Connect: Attempt #$counter - ${kitchenReceipt.message}")
+                                                printerKitchen.closeConnection()
+                                            }
+                                        }
+                                    }
+                                    is PrinterStatus.Error -> {
+                                        Timber.e(kitchenConnection.exception, "Printer Kitchen Connect: Attempt #$counter - ${kitchenConnection.message}")
+                                    }
+                                }
                                 counter++
                                 delay(printerInterval)
                             }

@@ -1,6 +1,6 @@
 include ':app'
 rootProject.name = "PrinterDemo"
 
-include ':printer'
-project(':printer').projectDir = new File('../TabsquarePrinter/printer')
+//include ':printer'
+//project(':printer').projectDir = new File('../TabsquarePrinter/printer')
 
