@@ -211,7 +211,8 @@ class MainActivity : AppCompatActivity() {
             rounding = 5.0,
             taxes = taxes,
             totalTax = 70.0,
-            grandTotal = 350.0
+            grandTotal = 350.0,
+            vouchers = emptyList()
         )
 
         val qrDetail = QRDetail(
