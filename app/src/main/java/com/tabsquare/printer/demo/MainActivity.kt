@@ -280,8 +280,9 @@ class MainActivity : AppCompatActivity() {
             while (counter <= printerCount) {
                 printerRequest.orderHeader?.queueNo = "Queue #$counter"
                 val printerTarget = PrinterTarget(
-                    PrinterType.EPSON_TM_M30_BT,
-                    "BT:00:01:90:84:CA:12"
+                    PrinterType.EPSON_TM_M30_TCP,
+                    "192.168.1.8"
+                    //"BT:00:01:90:84:CA:12"
                 )
                 val printingStatus = printerManager.printReceipt(
                     context = this@MainActivity,

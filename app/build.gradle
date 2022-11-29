@@ -48,7 +48,7 @@ dependencies {
 
     // tabsquare libs
     implementation "com.datadoghq:dd-sdk-android:1.10.0"
-    implementation "com.tabsquare.android:printer:G-3.0.3-SNAPSHOT"
+    implementation "com.tabsquare.android:printer:G-3.0.4-SNAPSHOT"
     implementation "com.tabsquare.android:logger:3.1.1"
 
     // timber for logging
