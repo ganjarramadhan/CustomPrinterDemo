@@ -2,41 +2,42 @@ package com.tabsquare.printer.demo
 
 import android.Manifest
 import android.os.Bundle
+import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Spinner
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.datadog.android.DatadogSite
+import com.epson.epos2.Log
 import com.karumi.dexter.Dexter
 import com.karumi.dexter.MultiplePermissionsReport
 import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener
-import com.tabsquare.printer.PrinterManager
-import com.tabsquare.printer.core.request.DisplayConfig
-import com.tabsquare.printer.core.request.OrderFooter
-import com.tabsquare.printer.core.request.OrderHeader
-import com.tabsquare.printer.core.request.OrderItem
-import com.tabsquare.printer.core.request.PaymentDetail
-import com.tabsquare.printer.core.request.PrinterRequest
-import com.tabsquare.printer.core.request.PrinterTarget
-import com.tabsquare.printer.core.request.QRDetail
-import com.tabsquare.printer.core.request.Restaurant
-import com.tabsquare.printer.core.request.Tax
-import com.tabsquare.printer.util.PrinterStatus
-import com.tabsquare.printer.util.formatDateAndTime
-import java.util.Date
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.tabsquare.log.TabsquareLogImpl
+import com.tabsquare.printer.PrinterManagerImp
+import com.tabsquare.printer.core.constant.PrinterStatus
+import com.tabsquare.printer.core.constant.PrinterType
+import com.tabsquare.printer.core.request.*
+import com.tabsquare.printer.core.state.PrintState
+import com.tabsquare.printer.templates.receipt.DefaultReceiptTemplate
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.collectLatest
 import timber.log.Timber
+import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var spinPrinter: Spinner
     private lateinit var etPrinterTarget: EditText
+
+    private val dispatcher = PrinterDispatcher()
+    private val translator = PrinterTranslator()
+    private val prefs = LoggerPrefs()
+    private val logger = TabsquareLogImpl(prefs)
+    private val printerManager = PrinterManagerImp(dispatcher, translator, logger)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,19 +49,27 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
+        initDog()
+
+        val tvTitle: TextView = findViewById(R.id.tvTitle)
+        tvTitle.text = "Test Epson: SDK ${Log.getSdkVersion()}"
+
         etPrinterTarget = findViewById(R.id.etPrinterTarget)
+        etPrinterTarget.visibility = View.GONE
 
         spinPrinter = findViewById(R.id.spinPrinter)
         val adapter = ArrayAdapter<String>(this, R.layout.item_spin_printer)
-        adapter.addAll(PrinterManager.getPrinterList())
+        adapter.addAll(printerManager.getOutletPrinterVendor().joinToString { it.displayName })
         spinPrinter.adapter = adapter
+        spinPrinter.visibility = View.GONE
 
         val btnPrint = findViewById<Button>(R.id.btnPrint)
         btnPrint.setOnClickListener {
-            val selectedPrinter = spinPrinter.selectedItemPosition
-            if (selectedPrinter > 0) printReceipt()
+//            val selectedPrinter = spinPrinter.selectedItemPosition
+//            if (selectedPrinter > 0) printReceipt()
             // val intent = Intent(this, EpsonPrinterFinder::class.java)
             // startActivity(intent)
+            printReceipt()
         }
 
         Dexter.withContext(this)
@@ -70,7 +79,9 @@ class MainActivity : AppCompatActivity() {
                 Manifest.permission.ACCESS_COARSE_LOCATION,
                 Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.BLUETOOTH,
-                Manifest.permission.BLUETOOTH_ADMIN
+                Manifest.permission.BLUETOOTH_ADMIN,
+                Manifest.permission.BLUETOOTH_SCAN,
+                Manifest.permission.BLUETOOTH_CONNECT
             ).withListener(object : MultiplePermissionsListener {
                 override fun onPermissionsChecked(report: MultiplePermissionsReport) { /* ... */
                 }
@@ -103,7 +114,7 @@ class MainActivity : AppCompatActivity() {
             stan = "STAN",
             merchantId = "123",
             terminalId = "T-123",
-            bankDateTime = Date().formatDateAndTime(),
+            bankDateTime = "2022-11-23",
             txnRef = "REF-123",
             cardPan = "PAN",
             cardType = "VISA",
@@ -233,17 +244,12 @@ class MainActivity : AppCompatActivity() {
         val displayConfig = DisplayConfig(
             useQueueNumberLabel = false,
             groupSameOption = false,
-            queueNumber = "Queue No.",
-            buzzerNumber = "Buzzer No.",
             officialReceipt = false,
-            thankYou = "Thank You",
-            pleaseProceedPay = "Please proceed to pay at counter"
         )
 
         val printerRequest = PrinterRequest(
             confirmedOrder = true,
             message = "",
-            printCopyMode = 0,
             restaurant = restaurant,
             paymentDetail = paymentDetail,
             orderHeader = orderHeader,
@@ -251,15 +257,7 @@ class MainActivity : AppCompatActivity() {
             orderFooter = orderFooter,
             customerDetail = customerDetail,
             qrDetail = qrDetail,
-            isRemoveDecimal = false,
-            countryId = 1,
             displayConfig = displayConfig,
-            snCode = null,
-            minCode = null,
-            printerTarget = PrinterTarget(
-                spinPrinter.selectedItemPosition,
-                etPrinterTarget.text.toString()
-            ),
             takeAwayInfo = null
         )
 
@@ -281,58 +279,53 @@ class MainActivity : AppCompatActivity() {
 
             while (counter <= printerCount) {
                 printerRequest.orderHeader?.queueNo = "Queue #$counter"
-                val printer =
-                    PrinterManager.createReceiptPrinter(this@MainActivity, printerRequest, 1)
-
-                when (val connectionStatus =
-                    withContext(Dispatchers.IO) { printer.openConnection() }) {
-                    is PrinterStatus.Success -> {
-                        // if connection success, then print
-                        when (val printingStatus =
-                            withContext(Dispatchers.IO) { printer.printReceipt() }) {
-                            is PrinterStatus.Success -> {
-                                printer.closeConnection()
-                                Timber.e("Printer: Attempt #$counter - Success Printing")
-                                delay(printerInterval)
-                                val printerKitchen = PrinterManager.createKitchenPrinter(this@MainActivity, printerRequest)
-                                when(val kitchenConnection = withContext(Dispatchers.IO) { printerKitchen.openConnection() }) {
-                                    is PrinterStatus.Success -> {
-                                        when(val kitchenReceipt = withContext(Dispatchers.IO) { printerKitchen.printReceipt() }) {
-                                            is PrinterStatus.Success -> {
-                                                Timber.d("Printer Kitchen Connect: Attempt #$counter - Success print kitchen")
-                                                printerKitchen.closeConnection()
-                                            }
-                                            is PrinterStatus.Error -> {
-                                                Timber.e(kitchenReceipt.exception, "Printer Kitchen Connect: Attempt #$counter - ${kitchenReceipt.message}")
-                                                printerKitchen.closeConnection()
-                                            }
-                                        }
-                                    }
-                                    is PrinterStatus.Error -> {
-                                        Timber.e(kitchenConnection.exception, "Printer Kitchen Connect: Attempt #$counter - ${kitchenConnection.message}")
-                                    }
+                val printerTarget = PrinterTarget(
+                    PrinterType.EPSON_TM_M30_BT,
+                    "BT:00:01:90:84:CA:12"
+                )
+                val printingStatus = printerManager.printReceipt(
+                    context = this@MainActivity,
+                    request = printerRequest,
+                    printerTarget = printerTarget,
+                    template = DefaultReceiptTemplate()
+                )
+                printingStatus.collectLatest {
+                    Timber.d("Collect Printer State :: ${when (it){ is PrintState.Success -> {it.status.message} is PrintState.Error -> { it.status.message } else -> {"UNKNOWN ERROR"} }}")
+                    when (it) {
+                        is PrintState.Success -> {
+                            if (it.status == PrinterStatus.STATUS_COMPLETED_PRINT) {
+                                withContext(Dispatchers.Main) {
+                                    Timber.i("Success to print")
                                 }
-                                counter++
-                                delay(printerInterval)
-                            }
-                            is PrinterStatus.Error -> {
-                                printer.closeConnection()
-                                Timber.e("Printer: Attempt #$counter -  Fail Printing ${printingStatus.code} - ${printingStatus.message}")
-                                counter++
-                                delay(printerInterval)
                             }
                         }
-                    }
-                    is PrinterStatus.Error -> {
-                        printer.closeConnection()
-                        Timber.d("Printer: Attempt #$counter -  Fail Connecting ${connectionStatus.code} - ${connectionStatus.message}")
-                        counter++
-                        delay(printerInterval)
+                        is PrintState.Error -> {
+                            withContext(Dispatchers.Main) {
+                                Timber.e("Failed to print")
+                            }
+                        }
+                        else -> {}
                     }
                 }
+                counter++
+                delay(printerInterval)
             }
 
             btnPrint.isEnabled = true
         }
+    }
+
+    private fun initDog() {
+        val clientToken = "pub350ce8ebd242c30a6bf8cb5be17c372f"
+
+        logger.initDataDog(
+            this,
+            DatadogSite.EU1,
+            clientToken,
+            "069e83a7-a1b8-4c6b-8b95-7fb55dba1ba0",
+            BuildConfig.DEBUG
+        )
+        logger.addDataDogTag("terminal_id", "TEST")
+        logger.addDataDogTag("brand_merchant_key", "TEST")
     }
 }
